@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "three": "^0.89.0",
+    "three-orbitcontrols": "^2.0.0"
+  },
+  "devDependencies": {
+    "budo": "^11.1.0"
+  },
+  "name": "mountain",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "budo index.js --live --port 3000"
+  },
+  "author": "Szymon Kaliski <hi@szymonkaliski.com> (http://szymonkaliski.com)",
+  "license": "MIT",
+  "private": true
+}
