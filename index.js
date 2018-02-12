@@ -11,7 +11,7 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-camera.position.z = 1;
+camera.position.z = 2;
 
 // scene
 const scene = new THREE.Scene();
@@ -20,21 +20,43 @@ const scene = new THREE.Scene();
 const ambientLight = new THREE.AmbientLight(0x777777);
 scene.add(ambientLight);
 
-// mesh
-const geometry = new THREE.PlaneGeometry(2, 2, 100, 100);
-const material = new THREE.MeshStandardMaterial();
-const mesh = new THREE.Mesh(geometry, material);
+const pointLight = new THREE.PointLight(0xffffff, 1, 0);
+pointLight.position.set(0, 100, 0);
+scene.add(pointLight);
 
-console.log(geometry.vertices);
+// mesh
+const planeWidth = 4;
+const planeHeight = 4;
+const planeSteps = 200;
+const geometry = new THREE.PlaneGeometry(
+  planeWidth,
+  planeHeight,
+  planeSteps,
+  planeSteps
+);
+
+const nMod = 1.9
 
 geometry.vertices.forEach(v => {
-  const n = Math.abs(simplex.noise2D(v.x, v.y));
+  const n = Math.abs(simplex.noise2D(v.x / planeWidth * nMod, v.y / planeHeight * nMod));
 
-  const mx = Math.sin(Math.PI * (v.x + 0.5));
-  const my = Math.sin(Math.PI * (v.y + 0.5));
+  const mx = Math.sin(Math.PI * (v.x / planeWidth + 0.5));
+  const my = Math.sin(Math.PI * (v.y / planeHeight + 0.5));
 
-  v.z += (n * 0.9) * Math.max(Math.min(mx, my), 0);
+  v.z += n * 0.9 * Math.max(Math.min(mx, my), 0);
 });
+
+geometry.computeBoundingSphere();
+geometry.computeVertexNormals();
+geometry.computeFaceNormals();
+
+const material = new THREE.MeshStandardMaterial({
+  color: 0x222222,
+  emissive: 0x010101,
+  roughness: 0.7,
+  metalness: 0.2
+});
+const mesh = new THREE.Mesh(geometry, material);
 
 mesh.rotation.x = -Math.PI / 2 * 0.8;
 
