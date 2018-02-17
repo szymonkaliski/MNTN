@@ -11,7 +11,7 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-camera.position.z = 14;
+camera.position.z = 10;
 
 // renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -26,32 +26,51 @@ document.body.appendChild(renderer.domElement);
 
 // scene
 const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x222222, 0.12);
 
 // lights
 const ambientLight = new THREE.AmbientLight(0x777777);
 scene.add(ambientLight);
 
 const pointLight = new THREE.PointLight(0xffffff, 1, 0);
-pointLight.position.set(0, 100, 10);
+pointLight.position.set(100, 100, -50);
 pointLight.castShadow = true;
 scene.add(pointLight);
 
+// background
+const bgSphereGeometry = new THREE.SphereGeometry(60);
+const bgSphereMaterial = new THREE.MeshLambertMaterial({
+  color: 0x1b1b1b,
+  emissive: 0x010101
+});
+const bgSphereMesh = new THREE.Mesh(bgSphereGeometry, bgSphereMaterial);
+bgSphereMaterial.side = THREE.DoubleSide;
+scene.add(bgSphereMesh);
+
 // mesh
-const planeWidth = 10;
+const planeWidth = 20;
 const planeHeight = 10;
-const planeSteps = 100;
+const planeStepsWidth = 100;
+const planeStepsHeight = 50;
 const geometry = new THREE.PlaneGeometry(
   planeWidth,
   planeHeight,
-  planeSteps,
-  planeSteps
+  planeStepsWidth,
+  planeStepsHeight
 );
 
 const nMod = 10;
-const heightMod = 0.2;
+const heightMod = 0.5;
 const neighbourMod = 0.5;
-const mountainCenter = new THREE.Vector2(0, 4);
-const mountainR = 5;
+
+const minSize = 0.18;
+const mountains = [
+  [new THREE.Vector2(-6, 2), 4.3],
+  [new THREE.Vector2(-2, 0), 3],
+  [new THREE.Vector2(0, 4), 5],
+  [new THREE.Vector2(2, 3), 2],
+  [new THREE.Vector2(5, -2), 2.4]
+];
 
 geometry.vertices.forEach(v => {
   const n = Math.abs(
@@ -59,10 +78,14 @@ geometry.vertices.forEach(v => {
   );
 
   const posxy = new THREE.Vector2(v.x, v.y);
-  const sizeMod =
-    1 - Math.min(mountainCenter.distanceTo(posxy) / mountainR, 1) + 0.1;
 
-  v.noise = n * sizeMod * heightMod;
+  const sizeMod = mountains.reduce((memo, [mountainCenter, mountainR]) => {
+    return (
+      memo + (1 - Math.min(mountainCenter.distanceTo(posxy) / mountainR, 1))
+    );
+  }, 0);
+
+  v.noise = n * (sizeMod + minSize) * heightMod;
 });
 
 geometry.vertices.forEach(v => {
@@ -84,7 +107,7 @@ geometry.computeVertexNormals();
 geometry.computeFaceNormals();
 
 const material = new THREE.MeshStandardMaterial({
-  color: 0x222222,
+  color: 0x121212,
   emissive: 0x010101,
   roughness: 0.7,
   metalness: 0.2,
@@ -95,6 +118,9 @@ const mesh = new THREE.Mesh(geometry, material);
 mesh.rotation.x = -Math.PI / 2 * 0.8;
 mesh.castShadow = true;
 mesh.receiveShadow = true;
+
+mesh.position.z = 1;
+mesh.position.y = -2;
 
 scene.add(mesh);
 
