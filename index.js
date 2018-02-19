@@ -1,6 +1,60 @@
 const THREE = require("three");
 const OrbitControls = require("three-orbitcontrols");
 const SimplexNoise = require("simplex-noise");
+const { Gui } = require("uil");
+
+global.THREE = THREE;
+
+require("three/examples/js/shaders/SSAOShader");
+require("three/examples/js/shaders/CopyShader");
+
+require("three/examples/js/postprocessing/EffectComposer.js");
+require("three/examples/js/postprocessing/RenderPass.js");
+require("three/examples/js/postprocessing/ShaderPass.js");
+require("three/examples/js/postprocessing/MaskPass.js");
+require("three/examples/js/postprocessing/SSAOPass.js");
+
+const ui = new Gui({ size: 300 });
+
+let opts = {
+  postProcessingEnabled: true,
+  onlyAO: false,
+  radius: 32,
+  aoClamp: 0.25,
+  lumInfluence: 0.7,
+  lightX: 100,
+  lightY: 100,
+  lightZ: -50
+};
+
+ui.setBG("#222222");
+
+[
+  { key: "postProcessingEnabled" },
+  { key: "onlyAO" },
+  { min: 0, max: 64, key: "radius" },
+  { min: 0, max: 1, key: "aoClamp" },
+  { min: 0, max: 1, key: "lumInfluence" },
+  { min: -100, max: 100, key: "lightX" },
+  { min: -100, max: 100, key: "lightY" },
+  { min: -100, max: 100, key: "lightZ" }
+].forEach(({ min, max, key }) => {
+  if (min !== undefined && max !== undefined) {
+    ui.add("slide", {
+      name: key,
+      min,
+      max,
+      value: opts[key],
+      callback: v => (opts[key] = v)
+    });
+  } else {
+    ui.add("bool", {
+      name: key,
+      value: opts[key],
+      callback: v => (opts[key] = v)
+    });
+  }
+});
 
 const simplex = new SimplexNoise();
 
@@ -33,7 +87,6 @@ const ambientLight = new THREE.AmbientLight(0x777777);
 scene.add(ambientLight);
 
 const pointLight = new THREE.PointLight(0xffffff, 1, 0);
-pointLight.position.set(100, 100, -50);
 pointLight.castShadow = true;
 scene.add(pointLight);
 
@@ -124,6 +177,15 @@ mesh.position.y = -2;
 
 scene.add(mesh);
 
+// postprocessing
+const renderPass = new THREE.RenderPass(scene, camera);
+const ssaoPass = new THREE.SSAOPass(scene, camera);
+ssaoPass.renderToScreen = true;
+
+const effectComposer = new THREE.EffectComposer(renderer);
+effectComposer.addPass(renderPass);
+effectComposer.addPass(ssaoPass);
+
 // orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = false;
@@ -132,7 +194,19 @@ controls.enableZoom = true;
 // loop
 const loop = () => {
   requestAnimationFrame(loop);
-  renderer.render(scene, camera);
+
+  pointLight.position.set(opts.lightX, opts.lightY, opts.lightZ);
+
+  if (opts.postProcessingEnabled) {
+    ssaoPass.onlyAO = opts.onlyAO;
+    ssaoPass.radius = opts.radius;
+    ssaoPass.aoClamp = opts.aoClamp;
+    ssaoPass.lumInfluence = opts.lumInfluence;
+
+    effectComposer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
 };
 
 loop();

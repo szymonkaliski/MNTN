@@ -2,7 +2,8 @@
   "dependencies": {
     "simplex-noise": "^2.3.0",
     "three": "^0.89.0",
-    "three-orbitcontrols": "^2.0.0"
+    "three-orbitcontrols": "^2.0.0",
+    "uil": "^1.0.1"
   },
   "devDependencies": {
     "budo": "^11.1.0"
