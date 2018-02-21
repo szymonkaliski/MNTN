@@ -7,12 +7,14 @@ global.THREE = THREE;
 
 require("three/examples/js/shaders/SSAOShader");
 require("three/examples/js/shaders/CopyShader");
+require("three/examples/js/shaders/BokehShader");
 
-require("three/examples/js/postprocessing/EffectComposer.js");
-require("three/examples/js/postprocessing/RenderPass.js");
-require("three/examples/js/postprocessing/ShaderPass.js");
-require("three/examples/js/postprocessing/MaskPass.js");
-require("three/examples/js/postprocessing/SSAOPass.js");
+require("three/examples/js/postprocessing/EffectComposer");
+require("three/examples/js/postprocessing/RenderPass");
+require("three/examples/js/postprocessing/ShaderPass");
+require("three/examples/js/postprocessing/MaskPass");
+require("three/examples/js/postprocessing/SSAOPass");
+require("three/examples/js/postprocessing/BokehPass");
 
 const ui = new Gui({ size: 300 });
 
@@ -24,7 +26,10 @@ let opts = {
   lumInfluence: 0.7,
   lightX: 100,
   lightY: 100,
-  lightZ: -50
+  lightZ: -50,
+  focus: 440,
+  aperture: 0.64,
+  maxblur: 10
 };
 
 ui.setBG("#222222");
@@ -37,7 +42,10 @@ ui.setBG("#222222");
   { min: 0, max: 1, key: "lumInfluence" },
   { min: -100, max: 100, key: "lightX" },
   { min: -100, max: 100, key: "lightY" },
-  { min: -100, max: 100, key: "lightZ" }
+  { min: -100, max: 100, key: "lightZ" },
+  { min: 0, max: 1000, key: "focus" },
+  { min: 0, max: 10, key: "aperture" },
+  { min: 0, max: 30, key: "maxblur" }
 ].forEach(({ min, max, key }) => {
   if (min !== undefined && max !== undefined) {
     ui.add("slide", {
@@ -178,13 +186,18 @@ mesh.position.y = -2;
 scene.add(mesh);
 
 // postprocessing
+const effectComposer = new THREE.EffectComposer(renderer);
+
 const renderPass = new THREE.RenderPass(scene, camera);
+effectComposer.addPass(renderPass);
+
 const ssaoPass = new THREE.SSAOPass(scene, camera);
 ssaoPass.renderToScreen = true;
-
-const effectComposer = new THREE.EffectComposer(renderer);
-effectComposer.addPass(renderPass);
 effectComposer.addPass(ssaoPass);
+
+const bokehPass = new THREE.BokehPass(scene, camera, {});
+bokehPass.renderToScreen = true;
+effectComposer.addPass(bokehPass);
 
 // orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -198,10 +211,18 @@ const loop = () => {
   pointLight.position.set(opts.lightX, opts.lightY, opts.lightZ);
 
   if (opts.postProcessingEnabled) {
-    ssaoPass.onlyAO = opts.onlyAO;
-    ssaoPass.radius = opts.radius;
-    ssaoPass.aoClamp = opts.aoClamp;
-    ssaoPass.lumInfluence = opts.lumInfluence;
+    if (ssaoPass) {
+      ssaoPass.onlyAO = opts.onlyAO;
+      ssaoPass.radius = opts.radius;
+      ssaoPass.aoClamp = opts.aoClamp;
+      ssaoPass.lumInfluence = opts.lumInfluence;
+    }
+
+    if (bokehPass) {
+      bokehPass.uniforms.focus.value = opts.focus;
+      bokehPass.uniforms.aperture.value = opts.aperture * 0.00001;
+      bokehPass.uniforms.maxblur.value = opts.maxblur;
+    }
 
     effectComposer.render();
   } else {
