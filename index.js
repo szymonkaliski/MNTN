@@ -8,6 +8,7 @@ global.THREE = THREE;
 require("three/examples/js/shaders/SSAOShader");
 require("three/examples/js/shaders/CopyShader");
 require("three/examples/js/shaders/BokehShader");
+require("three/examples/js/shaders/FilmShader");
 
 require("three/examples/js/postprocessing/EffectComposer");
 require("three/examples/js/postprocessing/RenderPass");
@@ -15,21 +16,30 @@ require("three/examples/js/postprocessing/ShaderPass");
 require("three/examples/js/postprocessing/MaskPass");
 require("three/examples/js/postprocessing/SSAOPass");
 require("three/examples/js/postprocessing/BokehPass");
+require("three/examples/js/postprocessing/FilmPass");
 
 const ui = new Gui({ size: 300 });
 
 let opts = {
   postProcessingEnabled: true,
+
   onlyAO: false,
   radius: 32,
   aoClamp: 0.25,
   lumInfluence: 0.7,
+
   lightX: 100,
   lightY: 100,
   lightZ: -50,
+
   focus: 440,
   aperture: 0.64,
-  maxblur: 10
+  maxblur: 10,
+
+  noiseIntensity: 0.36,
+  scanlinesIntensity: 0.76,
+  scanlinesCount: 2048,
+  grayscale: true
 };
 
 ui.setBG("#222222");
@@ -45,7 +55,11 @@ ui.setBG("#222222");
   { min: -100, max: 100, key: "lightZ" },
   { min: 0, max: 1000, key: "focus" },
   { min: 0, max: 10, key: "aperture" },
-  { min: 0, max: 30, key: "maxblur" }
+  { min: 0, max: 30, key: "maxblur" },
+  { key: "noiseIntensity", min: 0, max: 1 },
+  { key: "scanlinesIntensity", min: 0, max: 3 },
+  { key: "scanlinesCount", min: 0, max: 2048 },
+  { key: "grayscale" }
 ].forEach(({ min, max, key }) => {
   if (min !== undefined && max !== undefined) {
     ui.add("slide", {
@@ -192,12 +206,21 @@ const renderPass = new THREE.RenderPass(scene, camera);
 effectComposer.addPass(renderPass);
 
 const ssaoPass = new THREE.SSAOPass(scene, camera);
-ssaoPass.renderToScreen = true;
+// ssaoPass.renderToScreen = true;
 effectComposer.addPass(ssaoPass);
 
 const bokehPass = new THREE.BokehPass(scene, camera, {});
-bokehPass.renderToScreen = true;
+// bokehPass.renderToScreen = true;
 effectComposer.addPass(bokehPass);
+
+const filmPass = new THREE.FilmPass(
+  opts.noiseIntensity,
+  opts.scanlinesIntensity,
+  opts.scanlinesCount,
+  opts.grayscale
+);
+filmPass.renderToScreen = true;
+effectComposer.addPass(filmPass);
 
 // orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -222,6 +245,13 @@ const loop = () => {
       bokehPass.uniforms.focus.value = opts.focus;
       bokehPass.uniforms.aperture.value = opts.aperture * 0.00001;
       bokehPass.uniforms.maxblur.value = opts.maxblur;
+    }
+
+    if (filmPass) {
+      filmPass.uniforms.nIntensity.value = opts.noiseIntensity;
+      filmPass.uniforms.sIntensity.value = opts.scanlinesIntensity;
+      filmPass.uniforms.sCount.value = Math.round(opts.scanlinesCount);
+      filmPass.uniforms.grayscale.value = opts.grayscale;
     }
 
     effectComposer.render();
