@@ -206,11 +206,9 @@ const renderPass = new THREE.RenderPass(scene, camera);
 effectComposer.addPass(renderPass);
 
 const ssaoPass = new THREE.SSAOPass(scene, camera);
-// ssaoPass.renderToScreen = true;
 effectComposer.addPass(ssaoPass);
 
 const bokehPass = new THREE.BokehPass(scene, camera, {});
-// bokehPass.renderToScreen = true;
 effectComposer.addPass(bokehPass);
 
 const filmPass = new THREE.FilmPass(
@@ -261,3 +259,13 @@ const loop = () => {
 };
 
 loop();
+
+const onWindowResize = () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+};
+
+window.addEventListener("resize", onWindowResize, false);
+
