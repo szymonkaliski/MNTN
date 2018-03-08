@@ -1,5 +1,5 @@
 const THREE = require("three");
-const OrbitControls = require("three-orbitcontrols");
+// const OrbitControls = require("three-orbitcontrols");
 const SimplexNoise = require("simplex-noise");
 const { Gui } = require("uil");
 
@@ -8,7 +8,7 @@ global.THREE = THREE;
 require("three/examples/js/shaders/SSAOShader");
 require("three/examples/js/shaders/CopyShader");
 require("three/examples/js/shaders/BokehShader");
-require("three/examples/js/shaders/FilmShader");
+// require("three/examples/js/shaders/FilmShader");
 
 require("three/examples/js/postprocessing/EffectComposer");
 require("three/examples/js/postprocessing/RenderPass");
@@ -16,12 +16,14 @@ require("three/examples/js/postprocessing/ShaderPass");
 require("three/examples/js/postprocessing/MaskPass");
 require("three/examples/js/postprocessing/SSAOPass");
 require("three/examples/js/postprocessing/BokehPass");
-require("three/examples/js/postprocessing/FilmPass");
+// require("three/examples/js/postprocessing/FilmPass");
 
-const ui = new Gui({ size: 300 });
+const IS_DEBUG = window.location.search.indexOf("debug") >= 0;
 
-let opts = {
-  postProcessingEnabled: false,
+let loaderDiv = document.querySelector(".loader");
+
+const opts = {
+  postProcessingEnabled: true,
 
   onlyAO: false,
   radius: 32,
@@ -42,41 +44,45 @@ let opts = {
   grayscale: true
 };
 
-ui.setBG("#222222");
+if (IS_DEBUG) {
+  const ui = new Gui({ size: 300 });
 
-[
-  { key: "postProcessingEnabled" },
-  { key: "onlyAO" },
-  { min: 0, max: 64, key: "radius" },
-  { min: 0, max: 1, key: "aoClamp" },
-  { min: 0, max: 1, key: "lumInfluence" },
-  { min: -100, max: 100, key: "lightX" },
-  { min: -100, max: 100, key: "lightY" },
-  { min: -100, max: 100, key: "lightZ" },
-  { min: 0, max: 1000, key: "focus" },
-  { min: 0, max: 10, key: "aperture" },
-  { min: 0, max: 30, key: "maxblur" },
-  { key: "noiseIntensity", min: 0, max: 1 },
-  { key: "scanlinesIntensity", min: 0, max: 3 },
-  { key: "scanlinesCount", min: 0, max: 2048 },
-  { key: "grayscale" }
-].forEach(({ min, max, key }) => {
-  if (min !== undefined && max !== undefined) {
-    ui.add("slide", {
-      name: key,
-      min,
-      max,
-      value: opts[key],
-      callback: v => (opts[key] = v)
-    });
-  } else {
-    ui.add("bool", {
-      name: key,
-      value: opts[key],
-      callback: v => (opts[key] = v)
-    });
-  }
-});
+  ui.setBG("#222222");
+
+  [
+    { key: "postProcessingEnabled" },
+    { key: "onlyAO" },
+    { min: 0, max: 64, key: "radius" },
+    { min: 0, max: 1, key: "aoClamp" },
+    { min: 0, max: 1, key: "lumInfluence" },
+    { min: -100, max: 100, key: "lightX" },
+    { min: -100, max: 100, key: "lightY" },
+    { min: -100, max: 100, key: "lightZ" },
+    { min: 0, max: 1000, key: "focus" },
+    { min: 0, max: 10, key: "aperture" },
+    { min: 0, max: 30, key: "maxblur" },
+    { key: "noiseIntensity", min: 0, max: 1 },
+    { key: "scanlinesIntensity", min: 0, max: 3 },
+    { key: "scanlinesCount", min: 0, max: 2048 },
+    { key: "grayscale" }
+  ].forEach(({ min, max, key }) => {
+    if (min !== undefined && max !== undefined) {
+      ui.add("slide", {
+        name: key,
+        min,
+        max,
+        value: opts[key],
+        callback: v => (opts[key] = v)
+      });
+    } else {
+      ui.add("bool", {
+        name: key,
+        value: opts[key],
+        callback: v => (opts[key] = v)
+      });
+    }
+  });
+}
 
 const simplex = new SimplexNoise();
 
@@ -143,7 +149,7 @@ pointLight.castShadow = true;
 scene.add(pointLight);
 
 // background
-const bgSphereGeometry = new THREE.SphereGeometry(60);
+const bgSphereGeometry = new THREE.SphereGeometry(20);
 const bgSphereMaterial = new THREE.MeshLambertMaterial({
   color: 0x1b1b1b,
   emissive: 0x010101
@@ -239,16 +245,17 @@ const ssaoPass = new THREE.SSAOPass(scene, camera);
 effectComposer.addPass(ssaoPass);
 
 const bokehPass = new THREE.BokehPass(scene, camera, {});
+bokehPass.renderToScreen = true;
 effectComposer.addPass(bokehPass);
 
-const filmPass = new THREE.FilmPass(
-  opts.noiseIntensity,
-  opts.scanlinesIntensity,
-  opts.scanlinesCount,
-  opts.grayscale
-);
-filmPass.renderToScreen = true;
-effectComposer.addPass(filmPass);
+// const filmPass = new THREE.FilmPass(
+//   opts.noiseIntensity,
+//   opts.scanlinesIntensity,
+//   opts.scanlinesCount,
+//   opts.grayscale
+// );
+// filmPass.renderToScreen = true;
+// effectComposer.addPass(filmPass);
 
 // // orbit controls
 // const controls = new OrbitControls(camera, renderer.domElement);
@@ -269,8 +276,18 @@ const SPHERICAL_THETA_MAX = 0.4;
 const SPHERICAL_THETA_MIN = -0.4;
 const CAMERA_DAMPING = 0.2;
 const CAMERA_UPDATE_K = 0.05;
+const OPACITY_K = 0.9;
 
 const loop = () => {
+  if (loaderDiv && loaderDiv.style.opacity > 0) {
+    loaderDiv.style.opacity *= OPACITY_K;
+
+    if (loaderDiv.style.opacity < 0.01) {
+      document.body.removeChild(loaderDiv);
+      loaderDiv = undefined;
+    }
+  }
+
   requestAnimationFrame(loop);
 
   offset.copy(camera.position).sub(target);
@@ -318,12 +335,12 @@ const loop = () => {
       bokehPass.uniforms.maxblur.value = opts.maxblur;
     }
 
-    if (filmPass) {
-      filmPass.uniforms.nIntensity.value = opts.noiseIntensity;
-      filmPass.uniforms.sIntensity.value = opts.scanlinesIntensity;
-      filmPass.uniforms.sCount.value = Math.round(opts.scanlinesCount);
-      filmPass.uniforms.grayscale.value = opts.grayscale;
-    }
+    // if (filmPass) {
+    //   filmPass.uniforms.nIntensity.value = opts.noiseIntensity;
+    //   filmPass.uniforms.sIntensity.value = opts.scanlinesIntensity;
+    //   filmPass.uniforms.sCount.value = Math.round(opts.scanlinesCount);
+    //   filmPass.uniforms.grayscale.value = opts.grayscale;
+    // }
 
     effectComposer.render();
   } else {
