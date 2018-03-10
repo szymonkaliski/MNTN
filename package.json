@@ -8,7 +8,7 @@
   "devDependencies": {
     "budo": "^11.1.0"
   },
-  "name": "mountain",
+  "name": "MNTN",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
